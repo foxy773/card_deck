@@ -8,12 +8,12 @@
 		<input type="number" name="" id="" v-model="cardsToDraw" :max="cardDeck.remaining">
 		<button @click="drawCard()">Draw Card</button>
 		<button @click="fetchNewDeck()">New Deck</button>
-		<button @click="getHistory()">Get drawn cards</button>
-		<button @click="getAllLastCards()">GET</button>
+		<button @click="getHistory()">Get history</button>
+		<button @click="getAllLastCards()">Get all last cards</button>
 		</div>
-		<h3>Card Value: </h3>
+		<h3>Card Value: {{ cardDeck.totalValueDrawn }}</h3>
 		<div class="deck-container__card">
-			<img v-for="(card, index) in cardDeck.lastDrawnCards" :src="card.image" alt="">
+			<img v-for="(card, index) in cardDeck.onHand" :src="card.image" alt="">
 		</div>
 	</div>
 </template>
@@ -28,7 +28,10 @@ export default {
 				id: null,
 				remaining: null,
 				shuffled: null,
-				lastDrawnCards: [
+				onHand: [
+
+				],
+				history: [
 
 				],
 				totalValueDrawn: null
@@ -42,99 +45,107 @@ export default {
 
 	methods: {
 
-		getAllLastCards() {
-			  const lastDrawnCards = this.cardDeck.lastDrawnCards
+		async getAllLastCards() {
+			  const lastDrawnCards = this.cardDeck.onHand
 			  let cardCode = []
 			  lastDrawnCards.forEach(card => {
 					cardCode.push(card.code)
-					console.log(cardCode)
 					return cardCode.join(",")
 			  });
 			  return cardCode
 		  },
 
 		async fetchNewDeck() {
+			this.cardDeck.history = []
+
             let API = `https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1`;
             const res = await fetch(API);
             const results = await res.json();
-
-				console.log(results)
-
+				console.log(results, "New deck created")
 				this.cardDeck.id = results.deck_id
 				this.cardDeck.remaining = results.remaining
 				this.cardDeck.shuffled = results.shuffled
         },
 
+		async calculateCards() {
+			let calculatedTotal = 0
+			   this.cardDeck.onHand.map((value)=> {
+				   console.log(value.value, "Calcuate cards value")
+				  switch (value.value) {
+					case "ACE":
+						calculatedTotal += 1
+						break;
+					case "2":
+						calculatedTotal += 2
+						break;
+					case "3":
+						calculatedTotal += 3
+						break;
+					case "4":
+						calculatedTotal += 4
+						break;
+					case "5":
+						calculatedTotal += 5
+						break;
+					case "6":
+						calculatedTotal += 6
+						break;
+					case "7":
+						calculatedTotal += 7
+						break;
+					case "8":
+						calculatedTotal += 8
+						break;
+					case "9":
+						calculatedTotal += 9
+						break;
+					case "10":
+						calculatedTotal += 10
+						break;
+					case "JACK":
+						calculatedTotal += 10
+						break;
+					case "QUEEN":
+						calculatedTotal += 10
+						break;
+					case "KING":
+						calculatedTotal += 10
+						break;
+			  	}
+			})
+			console.log(calculatedTotal)
+			return calculatedTotal
+		},
+
 		  async drawCard() {
-			  let lastDrawnCards = this.getAllLastCards()
+			  let lastDrawnCards = (await this.getAllLastCards()).toString()
 				let API = `https://deckofcardsapi.com/api/deck/${this.cardDeck.id}/draw/?count=${this.cardsToDraw}`;
 				const res = await fetch(API);
-         	const results = await res.json();
+         		const results = await res.json();
 
-				this.cardDeck.lastDrawnCards = results.cards
-				this.cardDeck.remaining = results.remaining
+				this.cardDeck.onHand = await results.cards
+				this.cardDeck.history.push(results.cards)
+				this.cardDeck.remaining = await results.remaining
 	
-				let API2 = console.log(`https://deckofcardsapi.com/api/deck/${this.cardDeck.id}/pile/discarded/add/?cards=${lastDrawnCards}`);
+				let API2 = `https://deckofcardsapi.com/api/deck/${this.cardDeck.id}/pile/discarded/add/?cards=${lastDrawnCards}`;
 				const res2 = await fetch(API2);
 				const results2 = await res2.json();
-				console.log(results2, "adding history")
-				
+				console.log(results2, "adding to history")
+
+				this.cardDeck.totalValueDrawn = (await this.calculateCards()).toString()
 		  },
 
 		 async getHistory() {
-			  let API = `https://deckofcardsapi.com/api/deck/${this.cardDeck.id}/pile/discarded/draw/?count=2`;
-				const res = await fetch(API);
+			  let API = `https://deckofcardsapi.com/api/deck/${this.cardDeck.id}/pile/discarded/list/`;
+			  const options = {
+				  method: 'POST',
+				  body: ''
+			  }
+				const res = await fetch(API, options);
          	const results = await res.json();
 				
 				console.log(results, "History")
 		  },
-
-		   calculateCards() {
-			  /* this.cardsDeck.lastDrawnCards.map((value)=> {
-				  console.log(hello)
-				  switch (value) {
-					case ACE:
-						this.cardsDecktotalValueDrawn =+ 1
-						break;
-					case 2:
-						totalValueDrawn =+ 2
-						break;
-					case 3:
-						totalValueDrawn =+ 3
-						break;
-					case 4:
-						totalValueDrawn =+ 4
-						break;
-					case 5:
-						cardDeck.totalValueDrawn =+ 5
-						break;
-					case 6:
-						cardDeck.totalValueDrawn =+ 6
-						break;
-					case 7:
-						cardDeck.totalValueDrawn =+ 7
-						break;
-					case 8:
-						cardDeck.totalValueDrawn =+ 8
-						break;
-					case 9:
-						cardDeck.totalValueDrawn =+ 9
-						break;
-					case 10:
-						cardDeck.totalValueDrawn =+ 10
-						break;
-					case JACK:
-						cardDeck.totalValueDrawn =+ 10
-						break;
-					case QUEEN:
-						cardDeck.totalValueDrawn =+ 10
-						break;
-					case KING:
-						cardDeck.totalValueDrawn =+ 10
-						break;
-			  	}
-			})	   */
-		}
     },
 
 	mounted() {
