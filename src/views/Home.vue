@@ -15,6 +15,9 @@
 		<div class="deck-container__card">
 			<img v-for="(card, index) in cardDeck.onHand" :src="card.image" alt="">
 		</div>
+		<div class="deck-container__history">
+			<img v-for="(card, index) in cardDeck.history" :src="card.image" alt="">
+		</div>
 	</div>
 </template>
 
@@ -57,6 +60,7 @@ export default {
 
 		async fetchNewDeck() {
 			this.cardDeck.history = []
+			this.cardDeck.onHand = []
 
             let API = `https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1`;
             const res = await fetch(API);
@@ -113,18 +117,23 @@ export default {
 						break;
 			  	}
 			})
-			console.log(calculatedTotal)
 			return calculatedTotal
 		},
 
 		  async drawCard() {
+			  let history = this.cardDeck.history
+			  let onHand = this.cardDeck.onHand
 			  let lastDrawnCards = (await this.getAllLastCards()).toString()
 				let API = `https://deckofcardsapi.com/api/deck/${this.cardDeck.id}/draw/?count=${this.cardsToDraw}`;
 				const res = await fetch(API);
          		const results = await res.json();
 
 				this.cardDeck.onHand = await results.cards
-				this.cardDeck.history.push(results.cards)
+				results.cards.forEach(card => {
+					history.push(card)
+				})
+
+				/* this.cardDeck.history.push(results.cards[0]) */
 				this.cardDeck.remaining = await results.remaining
 	
 				let API2 = `https://deckofcardsapi.com/api/deck/${this.cardDeck.id}/pile/discarded/add/?cards=${lastDrawnCards}`;
@@ -142,9 +151,10 @@ export default {
 				  body: ''
 			  }
 				const res = await fetch(API, options);
-         	const results = await res.json();
+         		const results = await res.json();
 				
 				console.log(results, "History")
+				console.log(this.cardDeck.history)
 		  },
     },
 
@@ -189,5 +199,20 @@ export default {
 		align-self: center;
 		justify-self: center;
 		padding: 1rem;
+	}
+
+	.deck-container__history {
+		display:flex;
+		width: 100%;
+		height: 10rem;
+		background: rgb(24, 24, 24);
+		overflow-x: scroll;
+	}
+
+	.deck-container__history > img{
+		padding: 0.4rem;
+		height: 100%;
+		width: auto;
+
 	}
 </style>
